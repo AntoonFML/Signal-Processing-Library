@@ -133,9 +133,9 @@ std::vector<std::complex<double>> idft(const std::vector<std::complex<double>>& 
         result[i] = std::complex<double>(0, 0);
         for (size_t n = 0; n < N; n++) {
             result[i] += samples[n] * std::exp(M_I_2PI_DL * (double)i * (double)n);
-            result[i] /= static_cast<double>(samples.size());
-        }
             
+        }
+            result[i] /= static_cast<double>(samples.size());
     }
 
     return result;
