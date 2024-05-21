@@ -1,4 +1,0 @@
-1. Audiofile
-2. Matplotplusplus
-3. NumPy
-4. Scipy.io 
