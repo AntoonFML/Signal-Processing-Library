@@ -15,8 +15,16 @@
 
 namespace py = pybind11;
 
-int add(int i, int j) {
-    return i + j;
+std::vector<std::complex<double>> real_to_complex(const std::vector<double>& real_vector) {
+    std::vector<std::complex<double>> complex_vector(real_vector.size());
+    for (int i = 0; i < real_vector.size(); i++) {
+        complex_vector[i] = std::complex<double>(real_vector[i], 0.0);
+    }
+    return complex_vector;
+}
+
+int add(int a, int b){
+    return a+b;
 }
 
 void plot(py::array_t<double> t, py::array_t<double> x){
@@ -105,11 +113,7 @@ void transformata(const std::string& filePath) {
     int N = mono.size();
 
 
-    std::vector<std::complex<double>> complex_samples(N);
-    for (int i = 0; i < N; i++) {
-        complex_samples[i] = std::complex<double>(mono[i], 0.0);
-    }
-
+    std::vector<std::complex<double>> complex_samples = real_to_complex(mono);
 
     std::vector<std::complex<double>> dft_result = dft(complex_samples);
 
@@ -124,16 +128,20 @@ void transformata(const std::string& filePath) {
     matplot::show();
 }
 
-std::vector<std::complex<double>> idft(const std::vector<std::complex<double>>& samples) {
+std::vector<std::complex<double>> idft(const std::vector<double>& samples) {
     const size_t N = samples.size();
+    std::vector<std::complex<double>> samples_complex(N);
     std::vector<std::complex<double>> result(N);
     std::complex<double> M_I_2PI_DL = (std::complex<double>(0, 2.0 * M_PI) / static_cast<double>(samples.size()));
+
+    for(size_t i =0; i<N;i++){
+        samples_complex[i] = std::complex<double>(samples[i], 0.0);
+    }
 
     for (size_t i = 0; i < N; i++) {
         result[i] = std::complex<double>(0, 0);
         for (size_t n = 0; n < N; n++) {
-            result[i] += samples[n] * std::exp(M_I_2PI_DL * (double)i * (double)n);
-            
+            result[i] += samples_complex[n] * std::exp(M_I_2PI_DL * (double)i * (double)n);
         }
             result[i] /= static_cast<double>(samples.size());
     }
@@ -154,25 +162,27 @@ AudioFile<double> audioFile;
     int N = mono.size();
 
 
-    std::vector<std::complex<double>> complex_samples(N);
-    for (int i = 0; i < N; i++) {
-        complex_samples[i] = std::complex<double>(mono[i], 0.0);
+    std::vector<std::complex<double>> complex_samples = real_to_complex(mono);
+
+    std::vector<std::complex<double>> dft_result = dft(complex_samples);
+
+    std::vector<double> amplitudes(N);
+    for (int i = 0; i < N; ++i) {
+        amplitudes[i] = std::abs(dft_result[i]);
     }
 
+    std::vector<std::complex<double>> idft_result = idft(amplitudes);
 
-    std::vector<std::complex<double>> idft_result = idft(complex_samples);
-
-    std::vector<double> invAmplitudes(N);
-    for (int i = 0; i < N; ++i) {
-        invAmplitudes[i] = std::abs(idft_result[i]);
+    std::vector<double> idft_real(N);
+    for (size_t i = 0; i < N; ++i) {
+        idft_real[i] = std::real(idft_result[i]);
     }
 
     auto fig = matplot::figure();
-    matplot::plot(invAmplitudes);
+    matplot::plot(idft_real);
     matplot::title("Odwrotna Dyskretna Transformata Fouriera podanego sygnału:");
     matplot::show();
 }
-namespace py = pybind11;
 
 PYBIND11_MODULE(_core, m) {
     m.doc() = R"pbdoc(
@@ -194,6 +204,7 @@ PYBIND11_MODULE(_core, m) {
     m.def("odwrotna", &odwrotna);
     m.def("plot", &plot);
     m.def("progowanie", &progowanie);
+    m.def("real_to_complex", &real_to_complex);
     m.def("add", &add, R"pbdoc(
         Add two numbers
 
